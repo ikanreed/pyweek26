@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{e2b17a8d-018d-4515-b351-5116649ade7f}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile>main.py</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId>Global|PythonCore|3.6</InterpreterId>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="content\images\testlevel.png" />
+    <Content Include="content\shaders\2d.vert" />
+    <Content Include="content\shaders\initializeBuffers.frag" />
+    <Content Include="content\shaders\justblit.frag" />
+    <Content Include="content\shaders\updatebuffers.frag" />
+    <Content Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="Global|PythonCore|3.6" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="gameplay\Game.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="gameplay\Windows.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="gameplay\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GLUtil\FrameBufferManager.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GLUtil\UniformProvider.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GLUtil\Loaders.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GLUtil\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="main.py">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="content\images\" />
+    <Folder Include="content\shaders\" />
+    <Folder Include="gameplay\" />
+    <Folder Include="GLUtil\" />
+    <Folder Include="content\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>
