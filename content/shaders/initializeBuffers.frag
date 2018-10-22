@@ -1,11 +1,23 @@
 #version 400
 uniform sampler2D intexture;
+uniform vec3 targetColor;
+uniform float colorTolerance;
+uniform vec4 initialStatusColors;
 in vec2 vTexCoord;
 out vec4 fragColor;
-out ivec4 status;//"energy", direction, momentum
+
+out vec4 status;//"energy", direction, momentum
 void main()
 {
-	fragColor=texture2D(intexture, vTexCoord);
-	status=ivec4(10,100,255,255);
-	//fragColor=vec4(vTexCoord,0,1);
+	vec2 sampLoc=vec2(vTexCoord.x, vTexCoord.y);
+	vec4 incolor=texture2D(intexture, sampLoc);
+	if(distance(incolor.xyz, targetColor)<colorTolerance)
+	{
+		fragColor=vec4(targetColor,1);
+		status=initialStatusColors;
+	}
+	else
+	{
+		discard;
+	}
 }

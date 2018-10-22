@@ -60,7 +60,7 @@ class UniformProvider:
             except TypeError:
                 gltype=self.getGLType(value[0])
                 self.getSetter(gltype,length,False)(location, *[gltype(x) for x in value])
-        except TypeError:
+        except TypeError as e:
             gltype=self.getGLType(value)
             self.getSetter(gltype,1,False)(location,gltype(value))
             

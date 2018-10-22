@@ -9,7 +9,7 @@ class FrameBuffer:
     def __init__(self, width, height, window, num_color_attachments=1, mapping_mode=None, provide_depth=False, provide_stencil=False):
         """"Create an arbitrary layer framebuffer, I'll add stencil and depthbuffers if I ever package this for resuse, in pyweek, those args are pretty much placeholders"""
         if mapping_mode is None:
-            mapping_mode=gl.GL_LINEAR
+            mapping_mode=gl.GL_NEAREST
         assert not provide_stencil, 'stencil buffer not implemented'
         assert not provide_depth, 'depth buffer not implemented'
         self.window=window
