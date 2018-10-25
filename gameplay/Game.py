@@ -4,20 +4,26 @@ from GLUtil.UniformProvider import UniformProvider
 from pyglet import graphics
 from pyglet.window import key
 from pyglet.gl import GL_TRIANGLES as TRIANGLE
+from time import sleep
 import random
 
 import math
 square_2d=('v2i',(-1,-1, 1,-1, -1,1,
                     1,-1, -1,1, 1,1))#note that v2i means int distances with 2 nodes per vertex
 class PixelMaterial:
+    nextMatId=1
     def __init__(self, name,color, initialState,mobile, max_spread, spread_rate, physicsShader=None):
         self.name=name
         self.color=color
         self.initialState=initialState
+        
         self.mobile=mobile
         self.shader=physicsShader
         self.max_spread=max_spread
         self.spread_rate=spread_rate
+        self.MatId=PixelMaterial.nextMatId
+        PixelMaterial.nextMatId+=1
+        self.initialState+=[(self.MatId)/16,1.0]
 class Direction:
     def __init__(self, x, y):
         #range of the atan2 is -pi to pi, starting from positive y axis going left(positive) or right(negative)
@@ -32,20 +38,27 @@ class Direction:
 
 class WaveStopperGame:
     def __init__(self, levelname, window):
-        self.sand=PixelMaterial("sand",[1.0,1.0,0.0],[0.5, 0.0, 0.0, 1.0], True, 1/4, 1/255)
-        self.water=PixelMaterial("water",[0.0,0.0,1.0],[0.5, 0.0, 0.0, 0.25],True, 1.0, 15/255)
-        self.fixed=PixelMaterial("fixed",[1.0,1.0,1.0],[0.0, 0.0, 0.0, 1.0], False,0,0)
+        self.sand=PixelMaterial("sand",[1.0,1.0,0.0],[1/255, 0.0], True, 1/4, 1/255)
+        self.water=PixelMaterial("water",[0.0,0.0,1.0],[1/255, 0.0],True, 1.0, 5/255)
+        self.fixed=PixelMaterial("fixed",[1.0,1.0,1.0],[1/255, 0.0], False,0,0)
         self.materials=[ self.sand, self.water, self.fixed,]
         self.mobileMaterials=[material for material in self.materials if material.mobile]
         
-        self.directions=[ Direction(0,-1),Direction(1,-1), Direction(-1,-1), Direction(-1,0), Direction(1,0),Direction(0,1), Direction(-1,1), Direction(1,1)]
-        self.down=self.directions[0]
-        self.not_down=self.directions[1:]
+        self.mobileMaterials=[self.water]
+
+        #self.directions=[ Direction(0,-1),Direction(1,-1), Direction(-1,-1), Direction(-1,0), Direction(1,0),Direction(0,1), Direction(-1,1), Direction(1,1)]
+        #self.down=self.directions[0]
+        #self.not_down=self.directions[1:]
         self.ticks=0
         self.time=0
+        self.slow=False
         self.start_texture=dimage(levelname)
         self.blit_shader=dshader('2d','justblit')
-        self.update_shader=dshader('2d','updatebuffers')
+        self.pressure_update=dshader('2d','pressureUpdate')
+        self.flow_update=dshader('2d','pressureFlow')
+        self.debt_update=dshader('2d','pressureDebt')
+        self.update_steps=[self.pressure_update,self.debt_update, self.flow_update]
+        #self.update_steps=[self.flow_update]
         self.frame_buffers=[FrameBuffer(self.start_texture.width, self.start_texture.height,window, num_color_attachments=2) for _ in range(2)]
         self.window=window;
         self.setup_initial_frame()
@@ -63,6 +76,7 @@ class WaveStopperGame:
                     with UniformProvider(fire_and_forget, intexture=self.start_texture, targetColor=material.color,colorTolerance=0.1, initialStatusColors=material.initialState):
                         graphics.draw(6,TRIANGLE, square_2d )
             frame_buffer.textures[0].save('setup.png')
+            frame_buffer.textures[1].save('setupbg.png')
 
     def update(self, dt, pressedkeys):
         
@@ -70,37 +84,46 @@ class WaveStopperGame:
         self.bufferIndex=0
         #random.shuffle(self.not_down)
         #self.window.clear();
-        tick_stride=len(self.mobileMaterials) * 3
+        shader_stride=len(self.mobileMaterials)
+        tick_stride=len(self.update_steps)*shader_stride
+        if key.F11 in pressedkeys:
+            self.slow=False
+        if self.slow:
+            print('tick',self.ticks)
+            sleep(0.7)
         mat_stride=3
-        with self.update_shader:
-            for matIndex, material in enumerate(self.mobileMaterials):
-                for dirIndex, direction in enumerate([self.down, random.choice(self.not_down),random.choice(self.not_down)]):
-
-                    bufferIndex=self.ticks*tick_stride+matIndex*mat_stride+dirIndex+1
+        for shader_index,shader in enumerate(self.update_steps):
+            with shader:
+                for matIndex, material in enumerate(self.mobileMaterials):
+                    bufferIndex=self.ticks*tick_stride+shader_stride*shader_index+matIndex+1
                     frame_buffer=self.frame_buffers[bufferIndex%len(self.frame_buffers)]
                     prev_frame=self.frame_buffers[(bufferIndex-1)%len(self.frame_buffers)]
                     self.bufferIndex=bufferIndex
-                    self.updateSingleMaterial(frame_buffer,prev_frame,material, direction)
-                    if key.F10 in pressedkeys:
-                        print(f'Ran material {material.name} with color {material.color} on buffer {bufferIndex}({dirIndex},{matIndex},{self.ticks}) for direction {direction}')
-                        frame_buffer.textures[0].save(f'frame{self.ticks}-{material.name}-{direction.stepVector}FG.png')
-                        frame_buffer.textures[1].save(f'frame{self.ticks}-{material.name}-{direction.stepVector}BG.png')
+                    self.updateSingleMaterial(shader,frame_buffer,prev_frame,material)
+                    #sleep(0.01)
+
+                    if key.F10 in pressedkeys or self.ticks<0:
+                        print(f'Ran material {material.name} with color {material.color} on buffer {bufferIndex}({matIndex},{shader_index},{self.ticks})')
+                        frame_buffer.textures[0].save(f'frame{self.ticks}-{material.name}-shader{shader_index}FG.png')
+                        frame_buffer.textures[1].save(f'frame{self.ticks}-{material.name}-shader{shader_index}BG.png')
         self.ticks+=1
 
-    def updateSingleMaterial(self,frame_buffer, prev_frame,material, direction):
+    def updateSingleMaterial(self,shader,frame_buffer, prev_frame,material):
         with frame_buffer:
             self.window.clear();#abusive, but window.clear is apparently lazy as hell in pyglet, and will wipe our frame_buffer instead
-                
-            with UniformProvider(self.update_shader,
+            spread_rate=0.0
+            with UniformProvider(shader,
                                 previous_frame=prev_frame.textures[0], 
                                 previous_status=prev_frame.textures[1],
                                 size=[float(self.start_texture.width), float(self.start_texture.height)],
-                                move_direction=direction.stepVector,
-                                move_angle=direction.packed_angle,
-                                colorTolerance=0.1, #being within a unit circle 1 wide from the target color is good enough
-                                simulatedColor=material.color,
-                                spread_rate=material.spread_rate,
-                                max_spread=material.max_spread,
+                                materialIndex=material.MatId,
+
+                                #move_direction=direction.stepVector,
+                                
+                                #colorTolerance=0.1, #being within a unit circle 1 wide from the target color is good enough
+                                #simulatedColor=material.color,
+                                #spread_rate=spread_rate,
+                                #max_spread=material.max_spread,
                                 ):#just have to know that this is how these buffers are arranged
                 graphics.draw(6,TRIANGLE, square_2d )
                         

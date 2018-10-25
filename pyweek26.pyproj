@@ -21,8 +21,11 @@
   <ItemGroup>
     <Content Include="content\images\testlevel.png" />
     <Content Include="content\shaders\2d.vert" />
+    <Content Include="content\shaders\pressureDebt.frag" />
     <Content Include="content\shaders\initializeBuffers.frag" />
     <Content Include="content\shaders\justblit.frag" />
+    <Content Include="content\shaders\pressureFlow.frag" />
+    <Content Include="content\shaders\pressureUpdate.frag" />
     <Content Include="content\shaders\updatebuffers.frag" />
     <Content Include="README.md" />
   </ItemGroup>
