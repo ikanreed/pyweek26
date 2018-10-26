@@ -19,17 +19,19 @@ struct Status
 	int mat_id;
 };
 
-const vec2 neighbors[8]=vec2[](vec2(0,1),
+const vec2 neighbors[8]=vec2[](
 	vec2(0,-1),
-	vec2(1,0),
-	vec2(-1,0),
 	vec2(1,-1),
 	vec2(-1,-1),
+	vec2(-1,0),
+	vec2(1,0),
 	vec2(1,1),
-	vec2(-1,1));
+	vec2(-1,1),
+	vec2(0,1));
 
 Status unpack_status(vec2 coord)
 {
+
 	vec4 data=texture2D(previous_status, coord);
 	int zdata=int(data.z*255);
 	
@@ -81,10 +83,12 @@ void main()
 	}
 	//no neighbors=no pressure ever;
 	int diff=stat.pressure-max(pressureMax,1);
-	if(diff<0)
+	if(diff==0)
+		stat.pressure=max(stat.pressure,1);
+	else if (diff<0)
 		stat.pressure=max(pressureMax,1);
 	else
-		stat.pressure+=diff/2+diff%2;
+		stat.pressure+=int(ceil(log2(diff)));//  diff/3+(diff%3);
 	stat.age+=1;
 	//stat.pressure=pressureCount>1?int(ceil(float(pressureSum)/pressureCount)):1;
 	outStatus=pack_status(stat);

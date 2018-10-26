@@ -6,14 +6,15 @@ uniform vec2 size;
 uniform vec2 force_direction=vec2(0,-1);//we can instead get this from a material or formula if we want
 uniform int materialIndex;
 uniform int ticks;
-const vec2 neighbors[8]=vec2[](vec2(0,1),
+const vec2 neighbors[8]=vec2[](
 	vec2(0,-1),
-	vec2(1,0),
-	vec2(-1,0),
 	vec2(1,-1),
 	vec2(-1,-1),
+	vec2(-1,0),
+	vec2(1,0),
 	vec2(1,1),
-	vec2(-1,1));
+	vec2(-1,1),
+	vec2(0,1));
 in vec2 vTexCoord;
 
 
@@ -29,6 +30,7 @@ struct Status
 
 Status unpack_status(vec2 coord)
 {
+	
 	vec4 data=texture2D(previous_status, coord);
 	int zdata=int(data.z*255);
 	
@@ -47,20 +49,74 @@ int required_potential(vec2 neighborStep)
 	int x=int(min(difference.x, difference.y));
 	int y=int(max(difference.x,difference.y));
 	//     SAME as direction we want most? 0
-	return y==0? 1: 
+	return y==0? 40: 
 		   //either neighbor or 2 steps away
 		   y==1?
-				x==0? 3 : 5
+				x==0? 80 : 80
 		   // implicit y==2, opposite direction from "gravity", middle easier to fill than corners
-		   :    x==0||x==2? 6: 8;
+		   :    x==0||x==2? 640: 640;
 				
 }
 
 int getPotential(Status status)
 {
 	//return status.pressure;
-	return status.debt>0 ? -1 : status.pressure;
+	return status.debt>0 || status.age<12 ? -1 : status.pressure;
 	//return status.pressure-status.debt;
+}
+
+int pressure_effect(vec2 neighborStep)
+{
+	vec2 difference=abs(force_direction-neighborStep);
+	int x=int(min(difference.x, difference.y));
+	int y=int(max(difference.x,difference.y));
+	//     SAME as direction we want most? 0
+	return y==0? -1: 
+		   //either neighbor or 2 steps away
+		   y==1?
+				x==0? -1 : 0
+		   // implicit y==2, opposite direction from "gravity", middle easier to fill than corners
+		   :    1;
+				
+}
+
+
+int findFirstEmpty(vec2 fullCoord)
+{
+	for(int i=0;i<8;i++)
+	{
+		vec2 neighbor=neighbors[i];
+		Status nstat=unpack_status(neighbor/size+fullCoord);
+		if(nstat.mat_id==0)
+			return i;
+		
+	}
+	return -1;
+}
+
+int findHighestPressure(vec2 emptyCoord)
+{
+	int result=-1;
+	
+	Status examined=unpack_status(emptyCoord);
+	int maxPressure=examined.pressure+examined.age;
+	for(int i=7;i>=0;i--)//take from the top first, then the bottom
+	{
+		vec2 neighbor=neighbors[i];
+		Status nstat=unpack_status(neighbor/size+emptyCoord);
+		int pressureval=nstat.pressure+pressure_effect(neighbor);
+		//now we include a GO UP mechanic
+		if(nstat.mat_id==materialIndex //big pile of conditions, it must be more pressed, as old, not already doomed, and the right material
+			//&& nstat.age>3
+			&& pressureval>maxPressure)
+			//&& nstat.pressure<minPressure)
+		{
+			result=i;
+			maxPressure=pressureval;
+			//minPressure=nstat.pressure;
+		}
+	}
+	return result;
 }
 
 
@@ -81,41 +137,64 @@ void main()
 	int potential=getPotential(selfstat);
 	if (selfstat.mat_id==materialIndex)
 	{
-	//don't do any of this, because flow only creates new cells, death happens on debt
-//		int cost=0;
-//		for (int i=0;i<8;i++)
-//		{
-//			Status neighborStatus=unpack_status(vTexCoord+neighbors[i]/size);
-//			if(neighborStatus.mat_id==0 && potential>=required_potential(neighbors[i]))
-//			{
-//				//cost+=1;
-//			}
-//		}
+		int emptyDir=findFirstEmpty(vTexCoord);
+		if(emptyDir>-1)
+		{
+			vec2 neighbor=neighbors[emptyDir];
+			int highestDir=findHighestPressure(neighbor/size+vTexCoord);
+			//it DAMN WELL should be always great than -1 here
+			if(highestDir>-1 && neighbors[highestDir]==-neighbor)
+			{
+				outStatus=vec4(0,0,0,1);
+				fragColor=vec4(0,0,0,1);//consider showing this in red
+				return;
+			}
+		}
+
+
 		outStatus=pack_status(selfstat);
 		fragColor=texture2D(previous_frame, vTexCoord);
 	}
-	else //empty square, flow into it!
+	else //empty square, flow into it?
 	{
-		int fill=0;
-		vec4 lastNeighborColor;
-		for (int i=0;i<8;i++)
+		int highestDir=findHighestPressure(vTexCoord);
+		if(highestDir>-1)
 		{
-			Status neighborStatus=unpack_status(vTexCoord+neighbors[i]/size);
-			if(neighborStatus.mat_id==materialIndex && getPotential(neighborStatus)>=required_potential(-neighbors[i]))
+			vec2 neighbor=neighbors[highestDir];
+			int emptyDir=findFirstEmpty(neighbor/size+vTexCoord);
+			//it DAMN WELL better be the case that if we found one that could flow into us, they can find an empty
+			if(emptyDir>-1 && neighbors[emptyDir]==-neighbor)
 			{
-				fill+=1;
-				lastNeighborColor=texture2D(previous_frame,vTexCoord+neighbors[i]/size);
-				
+				selfstat.pressure=1;// have the simulation catch us up
+				selfstat.debt=0;
+				selfstat.age=0;
+				selfstat.mat_id=materialIndex;
+				fragColor=texture2D(previous_frame,neighbor/size+vTexCoord) ;//mat color + random offset?
+				outStatus=pack_status(selfstat);
 			}
 		}
-		if(fill>0)
-		{
-			selfstat.pressure=1;// have the simulation catch us up
-			selfstat.debt=1;
-			selfstat.age=0;
-			selfstat.mat_id=materialIndex;
-			fragColor=lastNeighborColor;//mat color + random offset?
-			outStatus=pack_status(selfstat);
-		}
+
+		
+//		int fill=0;
+//		vec4 lastNeighborColor;
+//		for (int i=0;i<8;i++)
+//		{
+//			Status neighborStatus=unpack_status(vTexCoord+neighbors[i]/size);
+//			if(neighborStatus.mat_id==materialIndex && getPotential(neighborStatus)>=required_potential(-neighbors[i]))
+//			{
+//				fill+=1;
+//				lastNeighborColor=texture2D(previous_frame,vTexCoord+neighbors[i]/size);
+//				
+//			}
+//		}
+//		if(fill>0)
+//		{
+//			selfstat.pressure=1;// have the simulation catch us up
+//			selfstat.debt+=1;
+//			selfstat.age=0;
+//			selfstat.mat_id=materialIndex;
+//			fragColor=lastNeighborColor;//mat color + random offset?
+//			outStatus=pack_status(selfstat);
+//		}
 	}
 }

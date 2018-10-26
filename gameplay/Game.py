@@ -44,7 +44,7 @@ class WaveStopperGame:
         self.materials=[ self.sand, self.water, self.fixed,]
         self.mobileMaterials=[material for material in self.materials if material.mobile]
         
-        self.mobileMaterials=[self.water]
+        #self.mobileMaterials=[self.water]
 
         #self.directions=[ Direction(0,-1),Direction(1,-1), Direction(-1,-1), Direction(-1,0), Direction(1,0),Direction(0,1), Direction(-1,1), Direction(1,1)]
         #self.down=self.directions[0]
@@ -56,8 +56,8 @@ class WaveStopperGame:
         self.blit_shader=dshader('2d','justblit')
         self.pressure_update=dshader('2d','pressureUpdate')
         self.flow_update=dshader('2d','pressureFlow')
-        self.debt_update=dshader('2d','pressureDebt')
-        self.update_steps=[self.pressure_update,self.debt_update, self.flow_update]
+        #self.debt_update=dshader('2d','pressureDebt')
+        self.update_steps=[self.pressure_update, self.flow_update]
         #self.update_steps=[self.flow_update]
         self.frame_buffers=[FrameBuffer(self.start_texture.width, self.start_texture.height,window, num_color_attachments=2) for _ in range(2)]
         self.window=window;
