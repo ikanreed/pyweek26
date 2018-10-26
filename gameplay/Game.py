@@ -59,7 +59,7 @@ class WaveStopperGame:
         #self.debt_update=dshader('2d','pressureDebt')
         self.update_steps=[self.pressure_update, self.flow_update]
         #self.update_steps=[self.flow_update]
-        self.frame_buffers=[FrameBuffer(self.start_texture.width, self.start_texture.height,window, num_color_attachments=2) for _ in range(2)]
+        self.frame_buffers=[FrameBuffer(self.start_texture.width, self.start_texture.height,window, num_color_attachments=2) for i in range(2)]
         self.window=window;
         self.setup_initial_frame()
         pass
@@ -112,10 +112,15 @@ class WaveStopperGame:
         with frame_buffer:
             self.window.clear();#abusive, but window.clear is apparently lazy as hell in pyglet, and will wipe our frame_buffer instead
             spread_rate=0.0
+            multiplier=1;
+            if self.ticks%4==0:
+                #multiplier=2
+                pass
+           
             with UniformProvider(shader,
                                 previous_frame=prev_frame.textures[0], 
                                 previous_status=prev_frame.textures[1],
-                                size=[float(self.start_texture.width), float(self.start_texture.height)],
+                                size=[float(self.start_texture.width*multiplier), float(self.start_texture.height*multiplier)],
                                 materialIndex=material.MatId,
 
                                 #move_direction=direction.stepVector,

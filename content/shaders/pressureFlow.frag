@@ -174,27 +174,5 @@ void main()
 			}
 		}
 
-		
-//		int fill=0;
-//		vec4 lastNeighborColor;
-//		for (int i=0;i<8;i++)
-//		{
-//			Status neighborStatus=unpack_status(vTexCoord+neighbors[i]/size);
-//			if(neighborStatus.mat_id==materialIndex && getPotential(neighborStatus)>=required_potential(-neighbors[i]))
-//			{
-//				fill+=1;
-//				lastNeighborColor=texture2D(previous_frame,vTexCoord+neighbors[i]/size);
-//				
-//			}
-//		}
-//		if(fill>0)
-//		{
-//			selfstat.pressure=1;// have the simulation catch us up
-//			selfstat.debt+=1;
-//			selfstat.age=0;
-//			selfstat.mat_id=materialIndex;
-//			fragColor=lastNeighborColor;//mat color + random offset?
-//			outStatus=pack_status(selfstat);
-//		}
 	}
 }
