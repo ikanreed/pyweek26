@@ -40,18 +40,18 @@ class WaveStopperGame:
     def __init__(self, levelname, window):
         self.sand=PixelMaterial("sand",[1.0,1.0,0.0],[1/255, 0.0], True, 1/4, 1/255)
         self.water=PixelMaterial("water",[0.0,0.0,1.0],[1/255, 0.0],True, 1.0, 5/255)
-        self.fixed=PixelMaterial("fixed",[1.0,1.0,1.0],[1/255, 0.0], False,0,0)
+        self.fixed=PixelMaterial("fixed",[1.0,1.0,1.0],[30/255, 0.0], False,0,0)
         self.materials=[ self.sand, self.water, self.fixed,]
         self.mobileMaterials=[material for material in self.materials if material.mobile]
         
-        #self.mobileMaterials=[self.water]
+        self.mobileMaterials=[self.water]
 
         #self.directions=[ Direction(0,-1),Direction(1,-1), Direction(-1,-1), Direction(-1,0), Direction(1,0),Direction(0,1), Direction(-1,1), Direction(1,1)]
         #self.down=self.directions[0]
         #self.not_down=self.directions[1:]
         self.ticks=0
         self.time=0
-        self.slow=False
+        self.slow=True
         self.start_texture=dimage(levelname)
         self.blit_shader=dshader('2d','justblit')
         self.pressure_update=dshader('2d','pressureUpdate')
@@ -59,7 +59,7 @@ class WaveStopperGame:
         #self.debt_update=dshader('2d','pressureDebt')
         self.update_steps=[self.pressure_update, self.flow_update]
         #self.update_steps=[self.flow_update]
-        self.frame_buffers=[FrameBuffer(self.start_texture.width, self.start_texture.height,window, num_color_attachments=2) for i in range(2)]
+        self.frame_buffers=[FrameBuffer(self.start_texture.width, self.start_texture.height,window, num_color_attachments=3) for i in range(2)]
         self.window=window;
         self.setup_initial_frame()
         pass
@@ -90,7 +90,7 @@ class WaveStopperGame:
             self.slow=False
         if self.slow:
             print('tick',self.ticks)
-            sleep(0.7)
+            sleep(0.2)
         mat_stride=3
         for shader_index,shader in enumerate(self.update_steps):
             with shader:
@@ -106,6 +106,7 @@ class WaveStopperGame:
                         print(f'Ran material {material.name} with color {material.color} on buffer {bufferIndex}({matIndex},{shader_index},{self.ticks})')
                         frame_buffer.textures[0].save(f'frame{self.ticks}-{material.name}-shader{shader_index}FG.png')
                         frame_buffer.textures[1].save(f'frame{self.ticks}-{material.name}-shader{shader_index}BG.png')
+                        frame_buffer.textures[2].save(f'frame{self.ticks}-{material.name}-shader{shader_index}Force.png')
         self.ticks+=1
 
     def updateSingleMaterial(self,shader,frame_buffer, prev_frame,material):
@@ -120,6 +121,8 @@ class WaveStopperGame:
             with UniformProvider(shader,
                                 previous_frame=prev_frame.textures[0], 
                                 previous_status=prev_frame.textures[1],
+                                previous_velocity=prev_frame.textures[2],
+                                max_velocity=255.0,
                                 size=[float(self.start_texture.width*multiplier), float(self.start_texture.height*multiplier)],
                                 materialIndex=material.MatId,
 
@@ -138,6 +141,7 @@ class WaveStopperGame:
         #self.start_texture.blit(0,0,0, 640, 480)
         frame_buffer.textures[0].blit(0,0,0)
         frame_buffer.textures[1].blit(frame_buffer.textures[0].width,0,0)
+        frame_buffer.textures[2].blit(0,frame_buffer.textures[0].height,0)
         #self.start_texture.blit(frame_buffer.textures[0].width,0,0)
         
         #with self.blit_shader:

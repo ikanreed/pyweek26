@@ -2,14 +2,20 @@
 
 uniform sampler2D previous_frame;
 uniform sampler2D previous_status;
+uniform sampler2D previous_velocity;
 uniform vec2 force_direction=vec2(0,-1);
 uniform int materialIndex;
 uniform vec2 size;
 uniform int ticks;
+uniform float max_velocity;
 
+const float force_per_frame=100.0/255;
+const float decay=0.5;
+const float pressure_scale=0.5;
 in vec2 vTexCoord;
 out vec4 fragColor;
 out vec4 outStatus;
+out vec4 outVelocity;
 
 struct Status
 {
@@ -38,6 +44,11 @@ Status unpack_status(vec2 coord)
 	return Status(int(data.x*255),int(data.y*255),zdata&0x0f,(zdata&0xf0)>>4 );
 
 }
+vec2 getVelocity(vec2 coordinate)
+{
+	return (texture2D(previous_velocity, coordinate).xy-vec2(.5,.5))*2*max_velocity;
+}
+
 vec4 pack_status(Status stat)
 {
 	float z=(min(stat.age,15)&0x0f) + ((stat.mat_id<<4)&0xf0);
@@ -63,33 +74,41 @@ int pressure_effect(vec2 neighborStep)
 void main()
 {
 	fragColor=texture2D(previous_frame,vTexCoord);
+	
 	Status stat=unpack_status(vTexCoord);
 	if(stat.mat_id!=materialIndex)
 	{
 		outStatus=pack_status(stat);
 		return;
 	}
+	vec2 cur_vel=getVelocity(vTexCoord);
+	//vec2 cur_vel=vec2(0,0);
+	cur_vel-=cur_vel*decay;
+	cur_vel=cur_vel+force_direction*force_per_frame*30;
 	int pressureSum=stat.pressure;
 	int pressureMax=stat.pressure;
 	for(int i=0;i<8;i++)
 	{
 		Status neighborStatus=unpack_status(vTexCoord+neighbors[i]/size);
-		if(neighborStatus.mat_id==materialIndex)
+		if(neighborStatus.mat_id!=0)
 		{
 			int npressure=neighborStatus.pressure-neighborStatus.debt+pressure_effect(neighbors[i]);
 			pressureSum+=npressure;
 			pressureMax=max(pressureMax, npressure);
+			cur_vel.x-=neighbors[i].x*npressure*force_per_frame*pressure_scale;//*force_per_frame;
+			cur_vel.y-=neighbors[i].y*npressure*force_per_frame*pressure_scale;
 		}
 	}
 	//no neighbors=no pressure ever;
 	int diff=stat.pressure-max(pressureMax,1);
 	if(diff==0)
-		stat.pressure=max(stat.pressure,1);
+		stat.pressure=max(stat.pressure-1,2);
 	else if (diff<0)
-		stat.pressure=max(pressureMax,1);
+		stat.pressure=max(pressureMax,2);
 	else
 		stat.pressure+=int(ceil(log2(diff)));//  diff/3+(diff%3);
 	stat.age+=1;
 	//stat.pressure=pressureCount>1?int(ceil(float(pressureSum)/pressureCount)):1;
 	outStatus=pack_status(stat);
+	outVelocity=vec4(cur_vel/max_velocity/2+vec2(0.5,0.5),0,1);
 }
