@@ -2,6 +2,7 @@ from GLUtil.Loaders import dshader, dimage
 from GLUtil.FrameBufferManager import FrameBuffer
 from GLUtil.UniformProvider import UniformProvider
 from pyglet import graphics
+from pyglet import image
 from pyglet.window import key
 from pyglet.gl import GL_TRIANGLES as TRIANGLE
 from time import sleep
@@ -37,12 +38,12 @@ class Direction:
         return {1.0:'up',-1.0:'down'}.get(self.stepVector[1],'')+{1.0:'right',-1.0:'left'}.get(self.stepVector[0],'')
 
 class WaveStopperGame:
-    def __init__(self, levelname, window):
+    def __init__(self, levelnamepath, window):
         self.sand=PixelMaterial("sand",[1.0,1.0,0.0],[1/255, 0.0], True, 1/4, 1/255)
         self.water=PixelMaterial("water",[0.0,0.0,1.0],[1/255, 0.0],True, 1.0, 5/255)
         self.fixed=PixelMaterial("fixed",[1.0,1.0,1.0],[30/255, 0.0], False,0,0)
         self.materials=[ self.sand, self.water, self.fixed,]
-        self.mobileMaterials=[material for material in self.materials if material.mobile]
+        #self.mobileMaterials=[material for material in self.materials if material.mobile]
         
         self.mobileMaterials=[self.water]
 
@@ -51,8 +52,9 @@ class WaveStopperGame:
         #self.not_down=self.directions[1:]
         self.ticks=0
         self.time=0
-        self.slow=True
-        self.start_texture=dimage(levelname)
+        self.slow=False
+        #self.start_texture=dimage(levelname)
+        self.start_texture=image.load(levelnamepath).get_texture()
         self.blit_shader=dshader('2d','justblit')
         self.pressure_update=dshader('2d','pressureUpdate')
         self.flow_update=dshader('2d','pressureFlow')

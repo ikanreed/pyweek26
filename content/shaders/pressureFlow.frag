@@ -159,31 +159,6 @@ int findHighestInboundVelocity(vec2 emptyCoord)
 	return result;
 }
 
-//int findHighestPressure(vec2 emptyCoord)
-//{
-//	int result=-1;
-//	
-//	Status examined=unpack_status(emptyCoord);
-//	int maxPressure=examined.pressure+examined.age;
-//	for(int i=7;i>=0;i--)//take from the top first, then the bottom
-//	{
-//		vec2 neighbor=neighbors[i];
-//		Status nstat=unpack_status(neighbor/size+emptyCoord);
-//		int pressureval=nstat.pressure+pressure_effect(neighbor);
-//		//now we include a GO UP mechanic
-//		if(nstat.mat_id==materialIndex //big pile of conditions, it must be more pressed, as old, not already doomed, and the right material
-//			//&& nstat.age>3
-//			&& pressureval>maxPressure)
-//			//&& nstat.pressure<minPressure)
-//		{
-//			result=i;
-//			maxPressure=pressureval;
-//			//minPressure=nstat.pressure;
-//		}
-//	}
-//	return result;
-//}
-
 
 
 void main()
@@ -215,14 +190,7 @@ void main()
 					outVelocity=vec4(0,0,0,1);
 					return;
 				}
-//				else//debugging, feel free to remove
-//				{
-//					outVelocity=vec4(cur_vel/max_velocity/2+vec2(0.5,0.5),0,1);
-//					outStatus=pack_status(selfstat);
-//					
-//					fragColor=vec4( (findHighestInboundVelocity(flowdir/size+vTexCoord)+2) /255.0, 1, 0, 1);
-//					
-//					return;
+
 //				}
 			}
 		}
@@ -240,12 +208,13 @@ void main()
 		if(highestDir>-1)
 		{
 			vec2 neighbor=neighbors[highestDir];
+			Status inheritedStatus=unpack_status(neighbor/size+vTexCoord);
 
 			
 			vec2 in_vel=getVelocity(neighbor/size+vTexCoord);
 			in_vel+=neighbor;
 
-			selfstat.pressure=1;// have the simulation catch us up
+			selfstat.pressure=inheritedStatus.pressure*3/4;// have the simulation catch us up
 			selfstat.debt=0;
 			selfstat.age=0;
 			selfstat.mat_id=materialIndex;

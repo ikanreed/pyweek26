@@ -1,9 +1,10 @@
 from gameplay.Windows import GameWindow
 
 
-def main():
-    game=GameWindow(1280, 960)
+def main(image_file,*args):
+    game=GameWindow(1280, 960, image_file)
     game.run()
 
 if __name__=="__main__":
-    main()
+    import sys
+    main(*sys.argv[1:])

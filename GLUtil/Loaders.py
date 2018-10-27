@@ -18,5 +18,4 @@ default_loader=Loader('content/shaders', 'content/images','content/audio','conte
 dshader=default_loader.load_shader
 dimage=default_loader.load_image
 
-
     
